@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "dreamweaver",
+  "version": "1.0.0",
+  "description": "Design tools for any local dev page: pick an element, tweak it live, send notes to a coding agent.",
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"],
+  "content_scripts": [
+    {
+      "matches": ["http://localhost/*", "http://127.0.0.1/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

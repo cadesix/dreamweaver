@@ -1,0 +1,28 @@
+{
+	"name": "dreamweaver",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Design tools for any local dev page: pick an element, tweak it live, send notes to a coding agent.",
+	"type": "module",
+	"bin": {
+		"dreamweaver": "bin/dreamweaver"
+	},
+	"scripts": {
+		"start": "node server/server.mjs",
+		"build": "node server/build.mjs",
+		"test": "node --test test/*.test.mjs",
+		"test:e2e": "node --test test/e2e/*.test.mjs",
+		"test:all": "npm test && npm run test:e2e",
+		"install:agent": "sh scripts/install.sh"
+	},
+	"engines": {
+		"node": ">=20"
+	},
+	"devDependencies": {
+		"happy-dom": "^20.11.2",
+		"playwright-core": "^1.55.0"
+	},
+	"dependencies": {
+		"esbuild": "^0.25.12"
+	}
+}

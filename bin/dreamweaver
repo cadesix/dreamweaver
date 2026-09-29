@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# dreamweaver — design tools for any local dev page. Runs the local server.
+# Normally started at login by launchd (scripts/install.sh); this is for running it by hand.
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+exec node "$HERE/server/server.mjs" "$@"
