@@ -5,6 +5,8 @@ export const STYLES = `
 [hidden] { display: none !important; }
 .ring { position: fixed; border: 2px solid #1e3fd8; border-radius: 4px; background: rgba(30,63,216,.08);
         pointer-events: none; transition: all 60ms ease; }
+.mark { position: fixed; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #1e3fd8;
+        border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); pointer-events: none; }
 .pin { position: fixed; width: 20px; height: 20px; border-radius: 50%; background: #1e3fd8; color: #fff;
        font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
        pointer-events: auto; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.3); }

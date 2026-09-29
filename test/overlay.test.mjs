@@ -163,6 +163,57 @@ describe("notes", () => {
 	});
 });
 
+describe("picking several with Shift", () => {
+	it("adds with Shift-click, takes back out with a second one, and marks each pick", async () => {
+		page = await loadPage(PAGE);
+		const [a, b] = ["a", "b"].map((id) => page.document.getElementById(id));
+		page.dock().querySelector(".cursor").click();
+		page.click(a);
+		page.click(b, { shiftKey: true });
+		await page.tick();
+		assert.equal(page.card.querySelector(".card-head b").textContent, "2 elements");
+		assert.equal(page.root.querySelectorAll(".mark").length, 2);
+		page.click(b, { shiftKey: true });
+		await page.tick();
+		assert.notEqual(page.card.querySelector(".card-head b").textContent, "2 elements");
+		assert.equal(page.root.querySelectorAll(".mark").length, 0);
+	});
+
+	it("edits every picked element together, and a plain click starts over", async () => {
+		page = await loadPage(PAGE);
+		const [a, b] = ["a", "b"].map((id) => page.document.getElementById(id));
+		page.dock().querySelector(".cursor").click();
+		page.dock().querySelector('[data-tool="radius"]').click();
+		page.click(a);
+		page.click(b, { shiftKey: true });
+		await page.tick();
+		page.card.querySelector('[data-r="12"]').click();
+		assert.equal(a.style.getPropertyValue("border-radius"), "12px");
+		assert.equal(b.style.getPropertyValue("border-radius"), "12px");
+		page.click(b);
+		await page.tick();
+		assert.equal(page.root.querySelectorAll(".mark").length, 0);
+	});
+
+	it("adds one note per picked element, each with its own changes", async () => {
+		page = await loadPage(PAGE);
+		const [a, b] = ["a", "b"].map((id) => page.document.getElementById(id));
+		page.dock().querySelector(".cursor").click();
+		page.dock().querySelector('[data-tool="text"]').click();
+		page.click(a);
+		page.click(b, { shiftKey: true });
+		await page.tick();
+		page.card.querySelector('[data-w="700"]').click();
+		page.card.querySelector('[data-act="note"]').click();
+		await page.tick(40);
+		const pins = [...page.root.querySelectorAll(".pin")];
+		assert.equal(pins.length, 2);
+		assert.match(pins[0].title, /font-weight: 400 → 700/);
+		assert.match(pins[1].title, /One of 2 elements edited together/);
+		assert.equal(a.style.getPropertyValue("transition"), "");
+	});
+});
+
 describe("keys", () => {
 	it("Esc closes the card first, then stops selecting", async () => {
 		page = await loadPage(PAGE);

@@ -12,7 +12,7 @@
  *    behaves exactly as it did.
  *
  * One dock in the corner: a pixel cursor. Clicking it turns on selecting —
- * hover outlines, click picks. A card opens beside the picked element with a
+ * hover outlines, click picks, Shift-click picks several. A card opens beside the picked element with a
  * shelf of tools above a note input; a tool swaps its controls in for the note
  * and the page repaints live. Every edit is tracked, so a note says exactly
  * what changed as well as what you typed. Nothing edits the code: a note is how
@@ -53,6 +53,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	root.innerHTML = `<style>${STYLES}</style>
 		<div class="ring" hidden></div>
 		<div class="pins"></div>
+		<div class="marks"></div>
 		<div class="card" hidden></div>
 		<button class="build" hidden>Build</button>
 		<div class="dock"></div>`;
@@ -60,6 +61,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 
 	const ring = root.querySelector(".ring");
 	const pins = root.querySelector(".pins");
+	const marks = root.querySelector(".marks");
 	const card = root.querySelector(".card");
 	const dock = root.querySelector(".dock");
 	const build = root.querySelector(".build");
@@ -72,8 +74,10 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	let hovered = null;
 	/** The tool the next pick opens on, chosen from the dock beforehand. */
 	let preferred = "note";
-	/** The element the card is open on, and which tool the card shows. */
-	let selected = null;
+	/* What the card is open on: one element, or several picked with Shift. Tools
+	   start from the first one's values and edit all of them together. */
+	let selection = [];
+	const primary = () => selection[0] ?? null;
 	let view = null;
 	let draft = "";
 	/* Where the card was dragged to, kept until it closes so it stays out of the
@@ -95,7 +99,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	/** A tool from the dock: switch the open card to it, or open on it next pick. */
 	function chooseTool(tool) {
 		if (!open) setOpen(true);
-		if (selected) {
+		if (selection.length > 0) {
 			showTool(tool);
 			return;
 		}
@@ -114,7 +118,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 
 	function drawDock() {
 		dock.innerHTML = "";
-		const active = selected ? view : preferred;
+		const active = selection.length > 0 ? view : preferred;
 		if (open) {
 			for (const tool of TOOLS) {
 				const button = document.createElement("button");
@@ -129,7 +133,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			sep.className = "sep";
 			dock.appendChild(sep);
 			const status = document.createElement("span");
-			if (!selected) {
+			if (selection.length === 0) {
 				status.className = "hint";
 				status.textContent = "Click an element";
 			} else {
@@ -154,7 +158,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		dock.appendChild(toggle);
 		/* Nothing to build with no notes, and nothing mid-edit: offering to ship
 		   while a card is open invites a half batch. */
-		build.hidden = notes.length === 0 || selected !== null;
+		build.hidden = notes.length === 0 || selection.length > 0;
 		build.textContent = "Build";
 		build.disabled = false;
 	}
@@ -179,28 +183,54 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 
 	// ── selecting ───────────────────────────────────────────────────────────
 
-	function select(el) {
-		selected = el;
-		view = preferred;
-		draft = "";
-		edits.still(el);
+	/**
+	 * A click picks one element; a Shift-click adds one, or takes it back out if
+	 * it was already picked. Adding keeps the tool and the note in progress.
+	 */
+	function select(el, additive = false) {
+		if (additive && selection.length > 0) {
+			selection = selection.includes(el) ? selection.filter((item) => item !== el) : [...selection, el];
+			if (selection.length === 0) return deselect();
+		} else {
+			selection = [el];
+			view = preferred;
+			draft = "";
+		}
+		edits.still(selection);
 		// The outline was for finding it; while editing it would sit on the change.
 		hovered = null;
 		ring.hidden = true;
+		drawMarks();
 		drawCard();
 		drawDock();
-		if (view === "note") card.querySelector("textarea")?.focus();
+		if (!additive && view === "note") card.querySelector("textarea")?.focus();
 	}
 
 	/** The edits stay on the page; only the card goes. */
 	function deselect() {
-		selected = null;
+		selection = [];
 		view = null;
 		moved = null;
 		edits.release();
 		card.hidden = true;
 		card.innerHTML = "";
+		drawMarks();
 		drawDock();
+	}
+
+	/* With several picked, a small dot marks each one at its corner — never an
+	   outline over the thing being changed. One pick needs no marker. */
+	function drawMarks() {
+		marks.innerHTML = "";
+		if (selection.length < 2) return;
+		for (const el of selection) {
+			const box = el.getBoundingClientRect();
+			const mark = document.createElement("div");
+			mark.className = "mark";
+			mark.style.left = `${box.x}px`;
+			mark.style.top = `${box.y}px`;
+			marks.appendChild(mark);
+		}
 	}
 
 	function outline(el) {
@@ -216,7 +246,8 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 
 	/** Beside the element, on whichever side has room, kept on screen — unless dragged. */
 	function placeCard() {
-		if (!selected) return;
+		const anchor = selection.at(-1);
+		if (!anchor) return;
 		const width = 280;
 		const height = card.offsetHeight || 300;
 		if (moved) {
@@ -224,7 +255,8 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			card.style.top = `${Math.min(window.innerHeight - 40, Math.max(8, moved.top))}px`;
 			return;
 		}
-		const box = selected.getBoundingClientRect();
+		// Beside the most recent pick, which is where the eye just was.
+		const box = anchor.getBoundingClientRect();
 		let left = box.right + 12;
 		if (left + width > window.innerWidth - 8) left = box.left - width - 12;
 		if (left < 8) left = Math.min(window.innerWidth - width - 8, Math.max(8, box.left));
@@ -253,20 +285,32 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	// ── the card ────────────────────────────────────────────────────────────
 
 	function drawCard() {
-		if (!selected) return;
-		const name = componentPath(selected)?.split(" › ").pop() ?? selected.tagName.toLowerCase();
+		const el = primary();
+		if (!el) return;
+		const name =
+			selection.length > 1
+				? `${selection.length} elements`
+				: (componentPath(el)?.split(" › ").pop() ?? el.tagName.toLowerCase());
+		const title = selection.map((item) => selectorOf(item)).join("\n");
 		card.innerHTML = `
 			<div class="card-head" title="Drag to move">
-				<b title="${selectorOf(selected).replace(/"/g, "&quot;")}">${name}</b>
+				<b title="${title.replace(/"/g, "&quot;")}">${name}</b>
 				<button class="x" data-act="close" title="Close (esc)">✕</button></div>
 			<div class="shelf">${TOOLS.map((tool) => `<button data-tool="${tool.id}" data-on="${tool.id === view}" title="${tool.label} (⌥${tool.key.toUpperCase()})">${icon(tool.id)}<span>${tool.label}</span></button>`).join("")}</div>`;
 		for (const button of card.querySelectorAll(".shelf [data-tool]")) {
 			button.onclick = () => showTool(button.dataset.tool);
 		}
 		const context = {
-			el: selected,
+			el,
+			els: selection,
 			root,
-			edits,
+			/* Every edit lands on every picked element (or just `targets`). */
+			set: (prop, value, shown, targets = selection) => {
+				for (const target of targets) edits.set(target, prop, value, shown);
+			},
+			reset: (props) => {
+				for (const target of selection) edits.reset(target, props);
+			},
 			changed: drawChanges,
 			redraw: drawCard,
 			addNote,
@@ -306,30 +350,37 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	/** What the tools have changed so far, shown under the note it will ride along with. */
 	function drawChanges(scope = card) {
 		const list = scope.querySelector?.(".changes");
-		if (!list || !selected) return;
-		const text = edits.describe(selected);
+		const el = primary();
+		if (!list || !el) return;
+		const text = edits.describe(el) + (selection.length > 1 && edits.describe(el) ? `\n(on all ${selection.length})` : "");
 		list.textContent = text;
 		list.hidden = !text;
 	}
 
-	/** A note: what was typed, plus every tracked change on the element. */
+	/**
+	 * A note per picked element: what was typed, plus that element's own tracked
+	 * changes — so each still points at exactly one thing in the batch file.
+	 */
 	async function addNote() {
-		if (!selected) return;
-		const el = selected;
-		const changes = edits.describe(el);
+		if (selection.length === 0) return;
+		const picked = [...selection];
 		const typed = draft.trim();
-		if (!typed && !changes) return deselect();
-		const box = el.getBoundingClientRect();
-		queue.add({
-			text: [typed, changes ? `Changes:\n${changes}` : ""].filter(Boolean).join("\n\n"),
-			box: { x: box.x, y: box.y, w: box.width, h: box.height },
-			tag: el.tagName.toLowerCase(),
-			label: (el.innerText ?? "").trim().slice(0, 80) || null,
-			component: componentPath(el),
-			selector: selectorOf(el),
-			source: await sourceOf(el),
-		});
-		edits.settle(el);
+		if (!typed && picked.every((el) => !edits.describe(el))) return deselect();
+		const together = picked.length > 1 ? `(One of ${picked.length} elements edited together.)` : "";
+		for (const el of picked) {
+			const changes = edits.describe(el);
+			const box = el.getBoundingClientRect();
+			queue.add({
+				text: [typed, changes ? `Changes:\n${changes}` : "", together].filter(Boolean).join("\n\n"),
+				box: { x: box.x, y: box.y, w: box.width, h: box.height },
+				tag: el.tagName.toLowerCase(),
+				label: (el.innerText ?? "").trim().slice(0, 80) || null,
+				component: componentPath(el),
+				selector: selectorOf(el),
+				source: await sourceOf(el),
+			});
+			edits.settle(el);
+		}
 		drawPins();
 		deselect();
 	}
@@ -387,7 +438,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			if (!open || event.composedPath().includes(host)) return;
 			event.preventDefault();
 			event.stopPropagation();
-			select(event.target);
+			select(event.target, event.shiftKey);
 		},
 		true,
 	);
@@ -405,7 +456,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			chooseTool(tool.id);
 		} else if (event.key === "Escape") {
 			// First the card, then selecting itself.
-			if (selected) deselect();
+			if (selection.length > 0) deselect();
 			else if (open) setOpen(false);
 		}
 	});
@@ -413,7 +464,8 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	/* Pins and the card sit in viewport coordinates, so they follow the page. */
 	const follow = () => {
 		drawPins();
-		if (selected) placeCard();
+		drawMarks();
+		if (selection.length > 0) placeCard();
 	};
 	addEventListener("scroll", follow, true);
 	addEventListener("resize", follow);

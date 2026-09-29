@@ -106,6 +106,19 @@ describe("in Chrome", () => {
 		await page.close();
 	});
 
+	it("picks several with Shift and edits them together", async () => {
+		const page = await openPage();
+		await page.click(".dock .cursor");
+		await page.click('.dock [data-tool="radius"]');
+		await page.click("#title");
+		await page.click("#bar", { modifiers: ["Shift"] });
+		await page.locator(".card-head b:has-text('2 elements')").waitFor();
+		assert.equal(await page.locator(".mark").count(), 2);
+		await page.click('.card [data-r="12"]');
+		assert.equal(await page.$eval("#title", (el) => getComputedStyle(el).borderTopLeftRadius), "12px");
+		await page.close();
+	});
+
 	it("moves the card by its header and keeps it there", async () => {
 		const page = await openPage();
 		await page.click(".dock .cursor");

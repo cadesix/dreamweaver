@@ -36,7 +36,8 @@ export async function loadPage(html) {
 		ring: root.querySelector(".ring"),
 		tick,
 		/** A real page click: bubbles and can be cancelled, the way the overlay intercepts it. */
-		click: (el) => el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true })),
+		click: (el, extra = {}) =>
+			el.dispatchEvent(new window.MouseEvent("click", { bubbles: true, cancelable: true, ...extra })),
 		key: (key, extra = {}) => window.dispatchEvent(new window.KeyboardEvent("keydown", { key, ...extra })),
 		close: () => window.happyDOM.close(),
 	};

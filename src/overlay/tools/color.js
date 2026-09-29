@@ -37,15 +37,18 @@ function defaultProp(el) {
 }
 
 /** Color: a full-spectrum HSL picker that repaints the element as you drag. */
-export function colorSection({ el, root, edits, changed, redraw, addNote }) {
+export function colorSection({ el, els, set, reset, root, changed, redraw, addNote }) {
 	if (!colorProp || !propsFor(el).some((p) => p.key === colorProp)) colorProp = defaultProp(el);
 	Object.assign(color, readColor(el, colorProp));
 
 	const paint = () => {
-		edits.set(el, colorProp, hslCss(color), `${hslCss(color)} (${hex(color)})`);
-		if (colorProp === "border-color" && getComputedStyle(el).borderStyle === "none") {
-			edits.set(el, "border-style", "solid");
-			if (!Number.parseFloat(getComputedStyle(el).borderWidth)) edits.set(el, "border-width", "1px");
+		set(colorProp, hslCss(color), `${hslCss(color)} (${hex(color)})`);
+		// A border color needs a border to show on, element by element.
+		for (const target of els) {
+			if (colorProp === "border-color" && getComputedStyle(target).borderStyle === "none") {
+				set("border-style", "solid", undefined, [target]);
+				if (!Number.parseFloat(getComputedStyle(target).borderWidth)) set("border-width", "1px", undefined, [target]);
+			}
 		}
 		changed();
 	};
@@ -133,7 +136,7 @@ export function colorSection({ el, root, edits, changed, redraw, addNote }) {
 	section.appendChild(
 		actions({
 			onReset: () => {
-				edits.reset(el, [colorProp, "border-style", "border-width"]);
+				reset([colorProp, "border-style", "border-width"]);
 				redraw();
 			},
 			onNote: () => void addNote(),

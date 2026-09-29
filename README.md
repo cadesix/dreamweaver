@@ -3,7 +3,8 @@
 Design tools for any local dev page. Pick an element, tweak it live, and send
 what you changed to a coding agent as a note.
 
-- **Pixel cursor** (bottom-right, or ⌥H) turns on selecting. Hover outlines, click picks.
+- **Pixel cursor** (bottom-right, or ⌥H) turns on selecting. Hover outlines, click picks,
+  **Shift-click** picks several (again to drop one); tools edit them all together.
 - **Card** beside the picked element: a shelf of tools above a note input. Drag it by its header.
 - **Tools:** Note (⌥A), Color (⌥C, full HSL + eyedropper, SVG fill/stroke), Text size and weight (⌥T), Corners (⌥R).
 - **Notes** carry what you typed plus every tracked change (`font-weight: 400 → 700`).

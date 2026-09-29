@@ -4,7 +4,7 @@ const PRESETS = [0, 4, 8, 12, 16, 24];
 const FULL = 9999;
 
 /** Corners: one radius for all four, with the common steps one click away. */
-export function radiusSection({ el, root, edits, changed, redraw, addNote }) {
+export function radiusSection({ el, set, reset, root, changed, redraw, addNote }) {
 	const section = document.createElement("div");
 	section.className = "section";
 	const range = rangeRow({
@@ -15,7 +15,7 @@ export function radiusSection({ el, root, edits, changed, redraw, addNote }) {
 		value: Number.parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0,
 		unit: "px",
 		onChange: (v) => {
-			edits.set(el, "border-radius", `${v}px`);
+			set("border-radius", `${v}px`);
 			changed();
 		},
 	});
@@ -27,7 +27,7 @@ export function radiusSection({ el, root, edits, changed, redraw, addNote }) {
 	for (const button of presets.querySelectorAll("[data-r]")) {
 		button.onclick = () => {
 			const v = Number(button.dataset.r);
-			edits.set(el, "border-radius", `${v}px`);
+			set("border-radius", `${v}px`);
 			range.show(v);
 			changed();
 		};
@@ -36,7 +36,7 @@ export function radiusSection({ el, root, edits, changed, redraw, addNote }) {
 	section.appendChild(
 		actions({
 			onReset: () => {
-				edits.reset(el, ["border-radius"]);
+				reset(["border-radius"]);
 				redraw();
 			},
 			onNote: () => void addNote(),

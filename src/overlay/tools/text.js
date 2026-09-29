@@ -10,7 +10,7 @@ const WEIGHTS = [
 ];
 
 /** Text: the element's size and weight. */
-export function textSection({ el, root, edits, changed, redraw, addNote }) {
+export function textSection({ el, set, reset, root, changed, redraw, addNote }) {
 	const section = document.createElement("div");
 	section.className = "section";
 	const style = getComputedStyle(el);
@@ -22,7 +22,7 @@ export function textSection({ el, root, edits, changed, redraw, addNote }) {
 		value: Number.parseFloat(style.fontSize) || 14,
 		unit: "px",
 		onChange: (v) => {
-			edits.set(el, "font-size", `${v}px`);
+			set("font-size", `${v}px`);
 			changed();
 		},
 	});
@@ -34,7 +34,7 @@ export function textSection({ el, root, edits, changed, redraw, addNote }) {
 		<div class="seg">${WEIGHTS.map(([w, name]) => `<button data-w="${w}" data-on="${w === current}" title="${w}">${name}</button>`).join("")}</div>`;
 	for (const button of weight.querySelectorAll("[data-w]")) {
 		button.onclick = () => {
-			edits.set(el, "font-weight", button.dataset.w);
+			set("font-weight", button.dataset.w);
 			for (const other of weight.querySelectorAll("[data-w]")) other.dataset.on = String(other === button);
 			weight.querySelector('[data-out="weight"]').textContent = button.dataset.w;
 			changed();
@@ -44,7 +44,7 @@ export function textSection({ el, root, edits, changed, redraw, addNote }) {
 	section.appendChild(
 		actions({
 			onReset: () => {
-				edits.reset(el, ["font-size", "font-weight"]);
+				reset(["font-size", "font-weight"]);
 				redraw();
 			},
 			onNote: () => void addNote(),

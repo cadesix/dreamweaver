@@ -8,9 +8,9 @@
  */
 export function createEdits() {
 	const edits = new Map();
-	/* The element's own transitions, off while it is being edited so the page
-	   tracks a drag rather than easing after it. */
-	let stilled = null;
+	/* The picked elements' own transitions, off while they are being edited so
+	   the page tracks a drag rather than easing after it. */
+	const stilled = new Map();
 
 	function entryOf(el) {
 		let entry = edits.get(el);
@@ -67,21 +67,31 @@ export function createEdits() {
 		});
 	}
 
-	function still(el) {
-		release();
-		stilled = {
-			el,
-			value: el.style.getPropertyValue("transition"),
-			priority: el.style.getPropertyPriority("transition"),
-		};
-		el.style.setProperty("transition", "none", "important");
+	/** Transitions off for exactly these elements; any others get theirs back. */
+	function still(els) {
+		for (const el of [...stilled.keys()]) {
+			if (!els.includes(el)) releaseOne(el);
+		}
+		for (const el of els) {
+			if (stilled.has(el)) continue;
+			stilled.set(el, {
+				value: el.style.getPropertyValue("transition"),
+				priority: el.style.getPropertyPriority("transition"),
+			});
+			el.style.setProperty("transition", "none", "important");
+		}
+	}
+
+	function releaseOne(el) {
+		const saved = stilled.get(el);
+		if (!saved) return;
+		if (saved.value) el.style.setProperty("transition", saved.value, saved.priority);
+		else el.style.removeProperty("transition");
+		stilled.delete(el);
 	}
 
 	function release() {
-		if (!stilled) return;
-		if (stilled.value) stilled.el.style.setProperty("transition", stilled.value, stilled.priority);
-		else stilled.el.style.removeProperty("transition");
-		stilled = null;
+		for (const el of [...stilled.keys()]) releaseOne(el);
 	}
 
 	return { set, reset, describe, settle, still, release };
