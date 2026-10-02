@@ -236,9 +236,15 @@ describe("keys", () => {
 
 describe("picking for another tool", () => {
 	const listen = (page) => {
-		const got = { picked: [], ended: 0 };
-		page.window.addEventListener("dreamweaver:picked", (e) => got.picked.push(JSON.parse(e.detail)));
-		page.window.addEventListener("dreamweaver:pick-ended", () => got.ended++);
+		const got = { picked: [], ended: 0, order: [] };
+		page.window.addEventListener("dreamweaver:picked", (e) => {
+			got.picked.push(JSON.parse(e.detail));
+			got.order.push("picked");
+		});
+		page.window.addEventListener("dreamweaver:pick-ended", () => {
+			got.ended++;
+			got.order.push("ended");
+		});
 		return got;
 	};
 	const start = (page) => page.window.dispatchEvent(new page.window.CustomEvent("dreamweaver:pick", { detail: "start" }));
@@ -257,6 +263,7 @@ describe("picking for another tool", () => {
 		assert.equal(got.picked[0].label, "Submit");
 		assert.equal(got.picked[0].selector, "#submit");
 		assert.equal(got.ended, 1);
+		assert.deepEqual(got.order, ["picked", "ended"]);
 		assert.equal(page.dock().querySelector(".cursor").dataset.on, "false");
 	});
 

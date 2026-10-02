@@ -477,8 +477,9 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			event.preventDefault();
 			event.stopPropagation();
 			if (lending) {
-				void report(event.target);
-				if (!event.shiftKey) lend(false);
+				// Report first: the borrower stops listening once picking ends.
+				const done = !event.shiftKey;
+				void report(event.target).finally(() => done && lend(false));
 				return;
 			}
 			select(event.target, event.shiftKey);
