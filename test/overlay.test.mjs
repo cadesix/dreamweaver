@@ -233,3 +233,74 @@ describe("keys", () => {
 		assert.equal(page.dock().querySelector('[data-tool="color"]').dataset.on, "true");
 	});
 });
+
+describe("picking for another tool", () => {
+	const listen = (page) => {
+		const got = { picked: [], ended: 0, order: [] };
+		page.window.addEventListener("dreamweaver:picked", (e) => {
+			got.picked.push(JSON.parse(e.detail));
+			got.order.push("picked");
+		});
+		page.window.addEventListener("dreamweaver:pick-ended", () => {
+			got.ended++;
+			got.order.push("ended");
+		});
+		return got;
+	};
+	const start = (page) => page.window.dispatchEvent(new page.window.CustomEvent("dreamweaver:pick", { detail: "start" }));
+
+	it("selects with the cursor alone: no tools, and a pick reports instead of opening the card", async () => {
+		page = await loadPage(PAGE);
+		const got = listen(page);
+		start(page);
+		assert.equal(page.dock().querySelectorAll("[data-tool]").length, 0);
+		assert.equal(page.dock().querySelector(".cursor").dataset.on, "true");
+		page.click(page.document.getElementById("submit"));
+		await page.tick();
+		assert.equal(page.card.hidden, true);
+		assert.equal(got.picked.length, 1);
+		assert.equal(got.picked[0].tag, "button");
+		assert.equal(got.picked[0].label, "Submit");
+		assert.equal(got.picked[0].selector, "#submit");
+		assert.equal(got.ended, 1);
+		assert.deepEqual(got.order, ["picked", "ended"]);
+		assert.equal(page.dock().querySelector(".cursor").dataset.on, "false");
+	});
+
+	it("keeps picking with Shift, and swallows the clicks", async () => {
+		page = await loadPage(PAGE);
+		const got = listen(page);
+		let clicked = 0;
+		page.document.getElementById("submit").addEventListener("click", () => clicked++);
+		start(page);
+		page.click(page.document.getElementById("a"), { shiftKey: true });
+		page.click(page.document.getElementById("submit"), { shiftKey: true });
+		await page.tick();
+		assert.deepEqual(got.picked.map((p) => p.selector), ["#a", "#submit"]);
+		assert.equal(clicked, 0);
+		assert.equal(got.ended, 0);
+		page.key("Escape");
+		assert.equal(got.ended, 1);
+	});
+
+	it("never picks the borrowing tool's own UI", async () => {
+		page = await loadPage(`${PAGE}<pilot-tab data-dreamweaver-ignore><span id="tab">tab</span></pilot-tab>`);
+		const got = listen(page);
+		start(page);
+		page.click(page.document.getElementById("tab"));
+		await page.tick();
+		assert.equal(got.picked.length, 0);
+		assert.equal(got.ended, 0);
+	});
+
+	it("stops on request", async () => {
+		page = await loadPage(PAGE);
+		const got = listen(page);
+		start(page);
+		page.window.dispatchEvent(new page.window.CustomEvent("dreamweaver:pick", { detail: "stop" }));
+		assert.equal(got.ended, 1);
+		page.click(page.document.getElementById("a"));
+		await page.tick();
+		assert.equal(got.picked.length, 0);
+	});
+});
