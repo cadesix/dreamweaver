@@ -284,7 +284,7 @@ describe("picking for another tool", () => {
 	});
 
 	it("never picks the borrowing tool's own UI", async () => {
-		page = await loadPage(`${PAGE}<pilot-tab data-dreamweaver-ignore><span id="tab">tab</span></pilot-tab>`);
+		page = await loadPage(`${PAGE}<computer-tab data-dreamweaver-ignore><span id="tab">tab</span></computer-tab>`);
 		const got = listen(page);
 		start(page);
 		page.click(page.document.getElementById("tab"));

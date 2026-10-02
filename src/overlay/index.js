@@ -106,7 +106,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 
 	/**
 	 * What an element is and where it came from — the record a note carries and a
-	 * lent pick reports (pilot's PickedElement depends on this shape).
+	 * lent pick reports (Computer's PickedElement depends on this shape).
 	 */
 	async function describe(el) {
 		return {
@@ -426,7 +426,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	// ── picking for another tool ────────────────────────────────────────────
 
 	/*
-	 * Another extension (pilot) can borrow just the picking: `dreamweaver:pick`
+	 * Another extension (Computer) can borrow just the picking: `dreamweaver:pick`
 	 * with detail "start" turns selecting on without the tools or the card, and
 	 * each pick goes back as `dreamweaver:picked` instead of opening a card. A
 	 * click picks one and ends it, Shift-click keeps going; Esc, the cursor or
