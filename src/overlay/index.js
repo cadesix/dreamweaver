@@ -479,7 +479,9 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			if (lending) {
 				// Report first: the borrower stops listening once picking ends.
 				const done = !event.shiftKey;
-				void report(event.target).finally(() => done && lend(false));
+				report(event.target)
+					.catch((error) => console.warn("dreamweaver: pick report failed", error))
+					.finally(() => done && lend(false));
 				return;
 			}
 			select(event.target, event.shiftKey);
