@@ -98,6 +98,26 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		drawDock();
 	}
 
+	/** The cursor and ⌥H: a lent pick ends; otherwise selecting flips. */
+	function toggleSelecting() {
+		if (lending) lend(false);
+		else setOpen(!open);
+	}
+
+	/**
+	 * What an element is and where it came from — the record a note carries and a
+	 * lent pick reports (pilot's PickedElement depends on this shape).
+	 */
+	async function describe(el) {
+		return {
+			tag: el.tagName.toLowerCase(),
+			label: (el.innerText ?? "").trim().slice(0, 80) || null,
+			component: componentPath(el),
+			selector: selectorOf(el),
+			source: await sourceOf(el),
+		};
+	}
+
 	/** A tool from the dock: switch the open card to it, or open on it next pick. */
 	function chooseTool(tool) {
 		if (!open) setOpen(true);
@@ -150,7 +170,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		toggle.innerHTML = cursorSvg();
 		toggle.title = open ? "Stop selecting (⌥H)" : "Select an element (⌥H)";
 		toggle.dataset.on = String(open);
-		toggle.onclick = () => (lending ? lend(false) : setOpen(!open));
+		toggle.onclick = toggleSelecting;
 		if (!open && notes.length > 0) {
 			// Folded is not empty: a batch forgotten about goes to the wrong session later.
 			const bubble = document.createElement("span");
@@ -376,11 +396,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			queue.add({
 				text: [typed, changes ? `Changes:\n${changes}` : "", together].filter(Boolean).join("\n\n"),
 				box: { x: box.x, y: box.y, w: box.width, h: box.height },
-				tag: el.tagName.toLowerCase(),
-				label: (el.innerText ?? "").trim().slice(0, 80) || null,
-				component: componentPath(el),
-				selector: selectorOf(el),
-				source: await sourceOf(el),
+				...(await describe(el)),
 			});
 			edits.settle(el);
 		}
@@ -427,14 +443,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	}
 
 	async function report(el) {
-		const detail = {
-			tag: el.tagName.toLowerCase(),
-			label: (el.innerText ?? "").trim().slice(0, 80) || null,
-			component: componentPath(el),
-			selector: selectorOf(el),
-			source: await sourceOf(el),
-		};
-		dispatchEvent(new CustomEvent("dreamweaver:picked", { detail: JSON.stringify(detail) }));
+		dispatchEvent(new CustomEvent("dreamweaver:picked", { detail: JSON.stringify(await describe(el)) }));
 	}
 
 	addEventListener("dreamweaver:pick", (event) => lend(event.detail !== "stop"));
@@ -493,8 +502,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		const key = OPTION_KEYS[event.key] ?? event.key?.toLowerCase();
 		if (event.altKey && key === "h") {
 			event.preventDefault();
-			if (lending) lend(false);
-			else setOpen(!open);
+			toggleSelecting();
 			return;
 		}
 		if (lending) {
