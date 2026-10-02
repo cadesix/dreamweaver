@@ -71,6 +71,8 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	/* Selecting on or off. Not persisted: a page that loads already selecting
 	   would eat its first click with nothing on screen to say why. */
 	let open = false;
+	/* Selecting on behalf of another tool (see "picking for another tool"). */
+	let lending = false;
 	let hovered = null;
 	/** The tool the next pick opens on, chosen from the dock beforehand. */
 	let preferred = "note";
@@ -119,7 +121,8 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 	function drawDock() {
 		dock.innerHTML = "";
 		const active = selection.length > 0 ? view : preferred;
-		if (open) {
+		// Lent out, the cursor alone says selecting is on; the tools aren't in play.
+		if (open && !lending) {
 			for (const tool of TOOLS) {
 				const button = document.createElement("button");
 				button.innerHTML = icon(tool.id);
@@ -147,7 +150,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		toggle.innerHTML = cursorSvg();
 		toggle.title = open ? "Stop selecting (⌥H)" : "Select an element (⌥H)";
 		toggle.dataset.on = String(open);
-		toggle.onclick = () => setOpen(!open);
+		toggle.onclick = () => (lending ? lend(false) : setOpen(!open));
 		if (!open && notes.length > 0) {
 			// Folded is not empty: a batch forgotten about goes to the wrong session later.
 			const bubble = document.createElement("span");
@@ -404,6 +407,41 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		}
 	};
 
+	// ── picking for another tool ────────────────────────────────────────────
+
+	/*
+	 * Another extension (pilot) can borrow just the picking: `dreamweaver:pick`
+	 * with detail "start" turns selecting on without the tools or the card, and
+	 * each pick goes back as `dreamweaver:picked` instead of opening a card. A
+	 * click picks one and ends it, Shift-click keeps going; Esc, the cursor or
+	 * "stop" end it, announced as `dreamweaver:pick-ended`. Window events are the
+	 * one channel an extension's isolated world shares with the page, and only
+	 * strings survive the crossing, so details are JSON.
+	 */
+	function lend(next) {
+		if (lending === next) return;
+		if (next && open) setOpen(false); // drop any card of our own first
+		lending = next;
+		setOpen(next);
+		if (!next) dispatchEvent(new CustomEvent("dreamweaver:pick-ended"));
+	}
+
+	async function report(el) {
+		const detail = {
+			tag: el.tagName.toLowerCase(),
+			label: (el.innerText ?? "").trim().slice(0, 80) || null,
+			component: componentPath(el),
+			selector: selectorOf(el),
+			source: await sourceOf(el),
+		};
+		dispatchEvent(new CustomEvent("dreamweaver:picked", { detail: JSON.stringify(detail) }));
+	}
+
+	addEventListener("dreamweaver:pick", (event) => lend(event.detail !== "stop"));
+
+	/* The borrowing tool's own UI sits in the page too; it marks itself so it is never picked. */
+	const theirs = (el) => Boolean(el?.closest?.("[data-dreamweaver-ignore]"));
+
 	// ── input ───────────────────────────────────────────────────────────────
 
 	/* Hover outlines what a click would pick — never the tools themselves, and
@@ -414,7 +452,7 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		(event) => {
 			if (!open) return;
 			const target = document.elementFromPoint(event.clientX, event.clientY);
-			if (!target || target === host || host.contains(target)) {
+			if (!target || target === host || host.contains(target) || theirs(target)) {
 				hovered = null;
 				ring.hidden = true;
 				return;
@@ -435,9 +473,14 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		"click",
 		(event) => {
 			// Anything inside the tools' own shadow root is theirs, whatever the retargeting.
-			if (!open || event.composedPath().includes(host)) return;
+			if (!open || event.composedPath().includes(host) || theirs(event.target)) return;
 			event.preventDefault();
 			event.stopPropagation();
+			if (lending) {
+				void report(event.target);
+				if (!event.shiftKey) lend(false);
+				return;
+			}
 			select(event.target, event.shiftKey);
 		},
 		true,
@@ -447,7 +490,12 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 		const key = OPTION_KEYS[event.key] ?? event.key?.toLowerCase();
 		if (event.altKey && key === "h") {
 			event.preventDefault();
-			setOpen(!open);
+			if (lending) lend(false);
+			else setOpen(!open);
+			return;
+		}
+		if (lending) {
+			if (event.key === "Escape") lend(false);
 			return;
 		}
 		const tool = event.altKey ? TOOLS.find((t) => t.key === key) : null;

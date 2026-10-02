@@ -11,6 +11,11 @@ what you changed to a coding agent as a note.
   **Build** sends the batch to the repo whose dev server served the page, as
   `.claude/annotations/<timestamp>.md`; `/notes` in that repo applies it.
 - Edits are inline styles until reload. Nothing here edits code.
+- **Lending the cursor:** another extension (pilot) can dispatch `dreamweaver:pick` (detail
+  `"start"` / `"stop"`) on `window` to borrow just the picking — no tools, no card. Each pick
+  comes back as `dreamweaver:picked` (JSON detail: tag, label, component, selector, source);
+  a plain click ends it, Shift keeps going, and `dreamweaver:pick-ended` says when it stops.
+  Elements under `[data-dreamweaver-ignore]` are never picked.
 
 ## How it fits together
 
