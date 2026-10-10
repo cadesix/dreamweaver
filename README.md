@@ -6,7 +6,9 @@ what you changed to a coding agent as a note.
 - **Pixel cursor** (bottom-right, or ⌥H) turns on selecting. Hover outlines, click picks,
   **Shift-click** picks several (again to drop one); tools edit them all together.
 - **Card** beside the picked element: a shelf of tools above a note input. Drag it by its header.
-- **Tools:** Note (⌥A), Color (⌥C, full HSL + eyedropper, SVG fill/stroke), Text size and weight (⌥T), Corners (⌥R).
+- **Tools:** Note (⌥A), Color (⌥C, full HSL + eyedropper, SVG fill/stroke), Text size and weight (⌥T), Corners (⌥R),
+  Spacing (⌥S: a container's padding, and the gap between its children along the way they flow: a flex
+  row's `column-gap`, a flex column's `row-gap`, a grid's `gap`; for a plain block, its children's margins).
 - **Notes** carry what you typed plus every tracked change (`font-weight: 400 → 700`).
   **Build** sends the batch to the repo whose dev server served the page, as
   `.claude/annotations/<timestamp>.md`; `/notes` in that repo applies it.

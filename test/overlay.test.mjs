@@ -28,7 +28,7 @@ describe("the dock", () => {
 		assert.equal(page.dock().querySelector(".hint").textContent, "Click an element");
 		assert.deepEqual(
 			[...page.dock().querySelectorAll("[data-tool]")].map((b) => b.dataset.tool),
-			["note", "color", "text", "radius"],
+			["note", "color", "text", "radius", "spacing"],
 		);
 	});
 
@@ -49,7 +49,7 @@ describe("picking an element", () => {
 		page.click(page.document.getElementById("a"));
 		await page.tick();
 		assert.equal(page.card.hidden, false);
-		assert.equal(page.card.querySelectorAll(".shelf [data-tool]").length, 4);
+		assert.equal(page.card.querySelectorAll(".shelf [data-tool]").length, 5);
 		assert.ok(page.card.querySelector("textarea"));
 		assert.equal(page.ring.hidden, true);
 	});
@@ -231,6 +231,53 @@ describe("keys", () => {
 		page = await loadPage(PAGE);
 		page.key("ç", { altKey: true });
 		assert.equal(page.dock().querySelector('[data-tool="color"]').dataset.on, "true");
+	});
+});
+
+describe("spacing", () => {
+	const SPACED = `
+		<div id="row" style="display:flex;column-gap:4px;padding:8px"><i>1</i><i>2</i></div>
+		<div id="col" style="display:flex;flex-direction:column;row-gap:4px"><i>1</i><i>2</i></div>
+		<div id="stack"><p id="p1" style="margin-bottom:10px">1</p><p id="p2" style="margin-top:6px">2</p><p id="p3">3</p></div>`;
+	const open = async (id) => {
+		page = await loadPage(SPACED);
+		const el = page.document.getElementById(id);
+		page.dock().querySelector(".cursor").click();
+		page.dock().querySelector('[data-tool="spacing"]').click();
+		page.click(el);
+		await page.tick();
+		return el;
+	};
+
+	it("sets the gap along the way a flex container flows", async () => {
+		const row = await open("row");
+		assert.match(page.card.querySelector(".label").textContent, /row/);
+		page.card.querySelector('[data-gap="16"]').click();
+		assert.equal(row.style.getPropertyValue("column-gap"), "16px");
+		assert.equal(row.style.getPropertyValue("row-gap"), "");
+		await page.close();
+		const col = await open("col");
+		assert.match(page.card.querySelector(".label").textContent, /column/);
+		page.card.querySelector('[data-gap="12"]').click();
+		assert.equal(col.style.getPropertyValue("row-gap"), "12px");
+	});
+
+	it("spaces a plain block's children with their margins, says so in the note, and resets them", async () => {
+		const stack = await open("stack");
+		const [p1, p2, p3] = ["p1", "p2", "p3"].map((id) => page.document.getElementById(id));
+		page.card.querySelector('[data-gap="24"]').click();
+		assert.equal(stack.style.getPropertyValue("gap"), "");
+		assert.deepEqual([p1, p2, p3].map((p) => p.style.getPropertyValue("margin-top")), ["", "24px", "24px"]);
+		assert.deepEqual([p1, p2, p3].map((p) => p.style.getPropertyValue("margin-bottom")), ["0px", "0px", ""]);
+		page.card.querySelector('.shelf [data-tool="note"]').click();
+		assert.match(page.card.querySelector(".changes").textContent, /gap between children .*: 10px → 24px/);
+		page.card.querySelector('.shelf [data-tool="spacing"]').click();
+		page.card.querySelector('[data-act="reset"]').click();
+		assert.equal(p1.style.getPropertyValue("margin-bottom"), "10px");
+		assert.equal(p2.style.getPropertyValue("margin-top"), "6px");
+		assert.equal(p3.style.getPropertyValue("margin-top"), "");
+		page.card.querySelector('.shelf [data-tool="note"]').click();
+		assert.equal(page.card.querySelector(".changes").hidden, true);
 	});
 });
 

@@ -25,12 +25,13 @@ import { componentPath, selectorOf, sourceOf } from "./source.js";
 import { STYLES } from "./styles.js";
 import { colorSection } from "./tools/color.js";
 import { radiusSection } from "./tools/radius.js";
+import { spacingSection } from "./tools/spacing.js";
 import { textSection } from "./tools/text.js";
 
 /* Stamped by the build: which bundle this page is running, for `/health` to compare. */
 const VERSION = typeof __DREAMWEAVER_VERSION__ === "string" ? __DREAMWEAVER_VERSION__ : "dev";
 
-const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection };
+const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection, spacing: spacingSection };
 
 (() => {
 	if (window.__annotate) return;
@@ -331,8 +332,11 @@ const SECTIONS = { color: colorSection, text: textSection, radius: radiusSection
 			set: (prop, value, shown, targets = selection) => {
 				for (const target of targets) edits.set(target, prop, value, shown);
 			},
-			reset: (props) => {
-				for (const target of selection) edits.reset(target, props);
+			remark: (label, from, to, targets = selection) => {
+				for (const target of targets) edits.remark(target, label, from, to);
+			},
+			reset: (props, targets = selection) => {
+				for (const target of targets) edits.reset(target, props);
 			},
 			changed: drawChanges,
 			redraw: drawCard,
