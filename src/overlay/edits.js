@@ -36,6 +36,16 @@ export function createEdits() {
 		entry.get(prop).to = shown ?? value;
 	}
 
+	/**
+	 * A change that isn't one property of this element (the margins of its
+	 * children, say): nothing is painted here, the note just says it.
+	 */
+	function remark(el, label, from, to) {
+		const entry = entryOf(el);
+		if (!entry.has(label)) entry.set(label, { remark: true, from, to: null });
+		entry.get(label).to = to;
+	}
+
 	/** Put back what the page had, for the given properties or all of them. */
 	function reset(el, props) {
 		const entry = edits.get(el);
@@ -43,6 +53,10 @@ export function createEdits() {
 		for (const prop of props ?? [...entry.keys()]) {
 			const saved = entry.get(prop);
 			if (!saved) continue;
+			if (saved.remark) {
+				entry.delete(prop);
+				continue;
+			}
 			if (saved.inline) el.style.setProperty(prop, saved.inline, saved.priority);
 			else el.style.removeProperty(prop);
 			entry.delete(prop);
@@ -94,5 +108,5 @@ export function createEdits() {
 		for (const el of [...stilled.keys()]) releaseOne(el);
 	}
 
-	return { set, reset, describe, settle, still, release };
+	return { set, remark, reset, describe, settle, still, release };
 }

@@ -5,9 +5,10 @@ export const TOOLS = [
 	{ id: "color", label: "Color", key: "c" },
 	{ id: "text", label: "Text", key: "t" },
 	{ id: "radius", label: "Corners", key: "r" },
+	{ id: "spacing", label: "Spacing", key: "s" },
 ];
 /* ⌥ letters on a Mac keyboard type these instead of the letter. */
-export const OPTION_KEYS = { "å": "a", "ç": "c", "†": "t", "®": "r", "˙": "h" };
+export const OPTION_KEYS = { "å": "a", "ç": "c", "†": "t", "®": "r", "ß": "s", "˙": "h" };
 
 /** Lucide-style glyphs (ISC), drawn at 18px. */
 export const ICONS = {
@@ -16,6 +17,7 @@ export const ICONS = {
 		'<path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/>',
 	text: '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
 	radius: '<path d="M4 20V11a7 7 0 0 1 7-7h9"/>',
+	spacing: '<path d="M4 4v16"/><path d="M20 4v16"/><path d="M8.5 12h7"/><path d="m11 9.5-2.5 2.5 2.5 2.5"/><path d="m13 9.5 2.5 2.5-2.5 2.5"/>',
 };
 export const icon = (id) =>
 	`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`;
